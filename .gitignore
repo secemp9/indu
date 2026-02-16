@@ -5,7 +5,7 @@
 *.a
 *.so
 *.dylib
-ncdu
+indu
 
 # Autotools generated
 Makefile
