@@ -1,5 +1,6 @@
-/* ncdu - NCurses Disk Usage
+/* indu - Incremental NCurses Disk Usage
 
+  Based on ncdu by Yorhel (https://dev.yorhel.nl/ncdu)
   Copyright (c) Yorhel
 
   Permission is hereby granted, free of charge, to any person obtaining
@@ -53,7 +54,7 @@ static const char *keys[KEYS*2] = {
             "i", "Show information about selected item",
             "r", "Recalculate the current directory",
             "b", "Spawn shell in current directory",
-            "q", "Quit ncdu"
+            "q", "Quit indu"
 };
 
 
@@ -75,7 +76,7 @@ void help_draw(void) {
 
   browse_draw();
 
-  nccreate(15, 60, "ncdu help");
+  nccreate(15, 60, "indu help");
   ncaddstr(13, 42, "Press ");
   uic_set(UIC_KEY);
   addch('q');
@@ -114,50 +115,50 @@ void help_draw(void) {
         ncaddstr(12, 25, "-- more --");
       break;
     case 3:
-      /* Indeed, too much spare time */
+      /* INDU logo */
       attron(A_REVERSE);
 #define x 12
 #define y 3
-      /* N */
+      /* I */
       ncaddstr(y+0, x+0, "      ");
-      ncaddstr(y+1, x+0, "  ");
-      ncaddstr(y+2, x+0, "  ");
-      ncaddstr(y+3, x+0, "  ");
-      ncaddstr(y+4, x+0, "  ");
-      ncaddstr(y+1, x+4, "  ");
-      ncaddstr(y+2, x+4, "  ");
-      ncaddstr(y+3, x+4, "  ");
-      ncaddstr(y+4, x+4, "  ");
-      /* C */
-      ncaddstr(y+0, x+8, "     ");
+      ncaddstr(y+1, x+2, "  ");
+      ncaddstr(y+2, x+2, "  ");
+      ncaddstr(y+3, x+2, "  ");
+      ncaddstr(y+4, x+0, "      ");
+      /* N */
+      ncaddstr(y+0, x+8, "      ");
       ncaddstr(y+1, x+8, "  ");
       ncaddstr(y+2, x+8, "  ");
       ncaddstr(y+3, x+8, "  ");
-      ncaddstr(y+4, x+8, "     ");
+      ncaddstr(y+4, x+8, "  ");
+      ncaddstr(y+1, x+12, "  ");
+      ncaddstr(y+2, x+12, "  ");
+      ncaddstr(y+3, x+12, "  ");
+      ncaddstr(y+4, x+12, "  ");
       /* D */
-      ncaddstr(y+0, x+19, "  ");
-      ncaddstr(y+1, x+19, "  ");
-      ncaddstr(y+2, x+15, "      ");
-      ncaddstr(y+3, x+15, "  ");
-      ncaddstr(y+3, x+19, "  ");
-      ncaddstr(y+4, x+15, "      ");
+      ncaddstr(y+0, x+21, "  ");
+      ncaddstr(y+1, x+21, "  ");
+      ncaddstr(y+2, x+17, "      ");
+      ncaddstr(y+3, x+17, "  ");
+      ncaddstr(y+3, x+21, "  ");
+      ncaddstr(y+4, x+17, "      ");
       /* U */
-      ncaddstr(y+0, x+23, "  ");
-      ncaddstr(y+1, x+23, "  ");
-      ncaddstr(y+2, x+23, "  ");
-      ncaddstr(y+3, x+23, "  ");
-      ncaddstr(y+0, x+27, "  ");
-      ncaddstr(y+1, x+27, "  ");
-      ncaddstr(y+2, x+27, "  ");
-      ncaddstr(y+3, x+27, "  ");
-      ncaddstr(y+4, x+23, "      ");
+      ncaddstr(y+0, x+25, "  ");
+      ncaddstr(y+1, x+25, "  ");
+      ncaddstr(y+2, x+25, "  ");
+      ncaddstr(y+3, x+25, "  ");
+      ncaddstr(y+0, x+29, "  ");
+      ncaddstr(y+1, x+29, "  ");
+      ncaddstr(y+2, x+29, "  ");
+      ncaddstr(y+3, x+29, "  ");
+      ncaddstr(y+4, x+25, "      ");
       attroff(A_REVERSE);
-      ncaddstr(y+0, x+30, "NCurses");
-      ncaddstr(y+1, x+30, "Disk");
-      ncaddstr(y+2, x+30, "Usage");
-      ncprint( y+4, x+30, "%s", PACKAGE_VERSION);
-      ncaddstr( 9, 11, "Written by Yorhel <projects@yorhel.nl>");
-      ncaddstr(10, 16, "https://dev.yorhel.nl/ncdu/");
+      ncaddstr(y+0, x+32, "Incremental");
+      ncaddstr(y+1, x+32, "NCurses");
+      ncaddstr(y+2, x+32, "Disk Usage");
+      ncprint( y+4, x+32, "%s", PACKAGE_VERSION);
+      ncaddstr( 9, 9, "Based on ncdu by Yorhel");
+      ncaddstr(10, 9, "https://dev.yorhel.nl/ncdu");
       break;
   }
 }

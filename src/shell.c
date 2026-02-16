@@ -1,5 +1,6 @@
-/* ncdu - NCurses Disk Usage
+/* indu - Incremental NCurses Disk Usage
 
+  Based on ncdu by Yorhel (https://dev.yorhel.nl/ncdu)
   Copyright (c) Yorhel
   Shell support: Copyright (c) 2014 Thomas Jarosch
 
@@ -40,14 +41,14 @@ static void set_level(void) {
   char nlvl[2];
   if(done)
     return;
-  lvl = getenv("NCDU_LEVEL");
+  lvl = getenv("INDU_LEVEL");
   /* too lazy to count beyond 9 */
   if(lvl && *lvl >= '1' && *lvl < '9' && lvl[1] == 0) {
     nlvl[0] = 1 + *lvl;
     nlvl[1] = 0;
-    setenv("NCDU_LEVEL", nlvl, 1);
+    setenv("INDU_LEVEL", nlvl, 1);
   } else
-    setenv("NCDU_LEVEL", "1", 1);
+    setenv("INDU_LEVEL", "1", 1);
   done++;
 }
 
@@ -69,7 +70,7 @@ void shell_draw(void) {
            "Press any key to continue.",
            full_path, res);
   } else {
-    const char *shell = getenv("NCDU_SHELL");
+    const char *shell = getenv("INDU_SHELL");
     if (shell == NULL) {
       shell = getenv("SHELL");
       if (shell == NULL)

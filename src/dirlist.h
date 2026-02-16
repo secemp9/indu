@@ -1,5 +1,6 @@
-/* ncdu - NCurses Disk Usage
+/* indu - Incremental NCurses Disk Usage
 
+  Based on ncdu by Yorhel (https://dev.yorhel.nl/ncdu)
   Copyright (c) Yorhel
 
   Permission is hereby granted, free of charge, to any person obtaining

@@ -1,7 +1,7 @@
 AM_CPPFLAGS=-I$(srcdir)/deps
-bin_PROGRAMS=ncdu
+bin_PROGRAMS=indu
 
-ncdu_SOURCES=\
+indu_SOURCES=\
 	src/browser.c\
 	src/delete.c\
 	src/dirlist.c\
@@ -40,11 +40,11 @@ noinst_HEADERS=\
 	src/util.h
 
 
-man_MANS=ncdu.1
-EXTRA_DIST=ncdu.1
+man_MANS=indu.1
+EXTRA_DIST=indu.1
 
 # This target exists more for documentation purposes than actual use; some
-# dependencies have minor ncdu-specific changes.
+# dependencies have minor indu-specific changes.
 update-deps:
 	wget -q https://raw.github.com/attractivechaos/klib/master/khashl.h -O "$(srcdir)/deps/khashl.h"
 	wget -q https://raw.githubusercontent.com/sourcefrog/natsort/master/strnatcmp.h -O "$(srcdir)/deps/strnatcmp.h"

@@ -1,5 +1,6 @@
-/* ncdu - NCurses Disk Usage
+/* indu - Incremental NCurses Disk Usage
 
+  Based on ncdu by Yorhel (https://dev.yorhel.nl/ncdu)
   Copyright (c) Yorhel
 
   Permission is hereby granted, free of charge, to any person obtaining
@@ -30,7 +31,7 @@
  * follows:
  *
  * Input:
- *   Responsible for getting a directory structure into ncdu. Will call the
+ *   Responsible for getting a directory structure into indu. Will call the
  *   Output functions for data and the UI functions for feedback. Currently
  *   there is only one input implementation: dir_scan.c
  * Output:
@@ -71,13 +72,13 @@ struct dir_output {
    */
   int (*item)(struct dir *, const char *, struct dir_ext *, unsigned int);
 
-  /* Finalizes the output to go to the next program state or exit ncdu. Called
+  /* Finalizes the output to go to the next program state or exit indu. Called
    * after item(NULL) has been called for the root item or before any item()
    * has been called at all.
    * Argument indicates success (0) or failure (1).
    * Failure happens when the root directory couldn't be opened, chdir, lstat,
    * read, when it is empty, or when the user aborted the operation.
-   * Return value should be 0 to continue running ncdu, 1 to exit.
+   * Return value should be 0 to continue running indu, 1 to exit.
    */
   int (*final)(int);
 
@@ -94,7 +95,7 @@ struct dir_output {
  *   Then calls browse_init(new_dir_struct->sub).
  * On failure:
  *   If a dir item is given, will just call browse_init(orig).
- *   Otherwise, will exit ncdu.
+ *   Otherwise, will exit indu.
  */
 void dir_mem_init(struct dir *);
 

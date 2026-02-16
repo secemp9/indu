@@ -1,5 +1,6 @@
-/* ncdu - NCurses Disk Usage
+/* indu - Incremental NCurses Disk Usage
 
+  Based on ncdu by Yorhel (https://dev.yorhel.nl/ncdu)
   Copyright (c) Yorhel
 
   Permission is hereby granted, free of charge, to any person obtaining
@@ -304,7 +305,7 @@ static int arg_option(int infile) {
 
 static void arg_help(void) {
   printf(
-  "ncdu <options> <directory>\n"
+  "indu <options> <directory>\n"
   "\n"
   "Mode selection:\n"
   "  -h, --help                 This help message\n"
@@ -347,11 +348,11 @@ static void arg_help(void) {
   "  --sort COLUMN-(asc/desc)   disk-usage / name / apparent-size / itemcount / mtime\n"
   "  --enable-natsort           Use natural order when sorting by name\n"
   "  --group-directories-first  Sort directories before files\n"
-  "  --confirm-quit             Ask confirmation before quitting ncdu\n"
+  "  --confirm-quit             Ask confirmation before quitting indu\n"
   "  --no-confirm-delete        Don't ask confirmation before deletion\n"
   "  --color SCHEME             off / dark / dark-bg\n"
   "\n"
-  "Refer to `man ncdu` for more information.\n");
+  "Refer to `man indu` for more information.\n");
   exit(0);
 }
 
@@ -412,13 +413,13 @@ static void config_load(int argc, char **argv) {
   for(r=0; r<argc; r++)
     if(strcmp(argv[r], "--ignore-config") == 0) return;
 
-  config_read("/etc/ncdu.conf");
+  config_read("/etc/indu.conf");
 
   if((env = getenv("XDG_CONFIG_HOME")) != NULL) {
-    r = snprintf(buf, 1024, "%s/ncdu/config", env);
+    r = snprintf(buf, 1024, "%s/indu/config", env);
     if(r > 0 && r < 1024) config_read(buf);
   } else if((env = getenv("HOME")) != NULL) {
-    r = snprintf(buf, 1024, "%s/.config/ncdu/config", env);
+    r = snprintf(buf, 1024, "%s/.config/indu/config", env);
     if(r > 0 && r < 1024) config_read(buf);
   }
 }
@@ -438,7 +439,7 @@ static void argv_parse(int argc, char **argv) {
   while((r = argparser_next(&argparser_state)) > 0) {
     if(r == 2) dir = argparser_state.last;
     else if(OPT("-v") || OPT("-V") || OPT("--version")) {
-      printf("ncdu %s\n", PACKAGE_VERSION);
+      printf("indu %s\n", PACKAGE_VERSION);
       exit(0);
     } else if(OPT("-h") || OPT("-?") || OPT("--help")) arg_help();
     else if(OPT("-o")) export = ARG;
@@ -498,7 +499,7 @@ static void init_nc(void) {
       set_term(term);
     ok = !!term;
   } else {
-    /* Make sure the user doesn't accidentally pipe in data to ncdu's standard
+    /* Make sure the user doesn't accidentally pipe in data to indu's standard
      * input without using "-f -". An annoying input sequence could result in
      * the deletion of your files, which we want to prevent at all costs. */
     if(!isatty(0)) die("Standard input is not a TTY. Did you mean to import a file using '-f -'?\n");

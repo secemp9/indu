@@ -1,11 +1,12 @@
 .\" SPDX-FileCopyrightText: Yorhel <projects@yorhel.nl>
 .\" SPDX-License-Identifier: MIT
+.\" Based on ncdu by Yorhel - https://dev.yorhel.nl/ncdu
 .Dd March 5, 2025
-.Dt NCDU 1
+.Dt INDU 1
 .Os
 .Sh NAME
-.Nm ncdu
-.Nd NCurses Disk Usage
+.Nm indu
+.Nd Incremental NCurses Disk Usage
 .
 .Sh SYNOPSIS
 .Nm
@@ -48,9 +49,10 @@
 .
 .Sh DESCRIPTION
 .Nm
-(NCurses Disk Usage) is an interactive curses-based version of the well-known
+(Incremental NCurses Disk Usage) is an interactive curses-based version of the well-known
 .Xr du 1 ,
 and provides a fast way to see what directories are using your disk space.
+It is a fork of ncdu with incremental caching for faster subsequent scans.
 .
 .Sh OPTIONS
 .Ss Mode Selection
@@ -272,7 +274,7 @@ Enable (default) or disable natural sort when sorting by file name.
 .It Fl \-group\-directories\-first , \-no\-group\-directories\-first
 Sort (or not) directories before files.
 .It Fl \-confirm\-quit , \-no\-confirm\-quit
-Require a confirmation before quitting ncdu.
+Require a confirmation before quitting indu.
 Can be helpful when you accidentally press 'q' during or after a very long scan.
 .It Fl \-confirm\-delete , \-no\-confirm\-delete
 Require a confirmation before deleting a file or directory.
@@ -297,9 +299,9 @@ The default is
 .Sh CONFIGURATION
 .Nm
 can be configured by placing command-line options in
-.Pa /etc/ncdu.conf
+.Pa /etc/indu.conf
 or
-.Pa $HOME/.config/ncdu/config .
+.Pa $HOME/.config/indu/config .
 If both files exist, the system configuration will be loaded before the user
 configuration, allowing users to override options set in the system
 configuration.
@@ -323,8 +325,8 @@ Example configuration file:
 # Exclude .git directories
 \-\-exclude .git
 
-# Read excludes from ~/.ncduexcludes, ignore error if the file does not exist
-@--exclude-from ~/.ncduexcludes
+# Read excludes from ~/.induexcludes, ignore error if the file does not exist
+@--exclude-from ~/.induexcludes
 .Ed
 .
 .Sh KEYS
@@ -383,7 +385,7 @@ Spawn shell in current directory.
 .Pp
 .Nm
 determines your preferred shell from the
-.Ev NCDU_SHELL
+.Ev INDU_SHELL
 or
 .Ev SHELL
 environment variable (in that order), or calls
@@ -396,9 +398,9 @@ For example, to spawn the
 file manager instead of a shell, run
 .Nm
 as follows:
-.Dl NCDU_SHELL=vifm ncdu
+.Dl INDU_SHELL=vifm indu
 The
-.Ev NCDU_LEVEL
+.Ev INDU_LEVEL
 environment variable is set or incremented before spawning the shell, allowing
 you to detect if your shell is running from within
 .Nm .
@@ -435,17 +437,20 @@ Empty directory.
 .
 .Sh EXAMPLES
 To scan and browse the directory you're currently in, all you need is a simple:
-.Dl ncdu
+.Dl indu
 To scan a full filesystem, for example your root filesystem, you'll want to use
 .Fl x :
-.Dl ncdu \-x /
+.Dl indu \-x /
+.Pp
+To use incremental caching for faster subsequent scans:
+.Dl indu \-\-cache ~/.cache/indu\-home.json ~
 .Pp
 Since scanning a large directory may take a while, you can scan a directory and
 export the results for later viewing:
 .Bd -literal -offset indent
-ncdu \-1xo\- / | gzip >export.gz
+indu \-1xo\- / | gzip >export.gz
 # ...some time later:
-zcat export.gz | ncdu \-f\-
+zcat export.gz | indu \-f\-
 .Ed
 To export from a cron job, make sure to replace
 .Fl 1
@@ -454,12 +459,12 @@ with
 to suppress unnecessary progress output.
 .Pp
 You can also export a directory and browse it once scanning is done:
-.Dl ncdu \-o\- | tee export.file | ./ncdu \-f\-
+.Dl indu \-o\- | tee export.file | ./indu \-f\-
 The same is possible with gzip compression, but is a bit kludgey:
-.Dl ncdu \-o\- | gzip | tee export.gz | gunzip | ./ncdu \-f\-
+.Dl indu \-o\- | gzip | tee export.gz | gunzip | ./indu \-f\-
 .Pp
 To scan a system remotely, but browse through the files locally:
-.Dl ssh \-C user@system ncdu \-o\- / | ./ncdu \-f\-
+.Dl ssh \-C user@system indu \-o\- / | ./indu \-f\-
 The
 .Fl C
 option to ssh enables compression, which will be very useful over slow links.
@@ -474,14 +479,15 @@ won't consume much memory on the remote system.
 .
 .Sh SEE ALSO
 .Xr du 1 ,
-.Xr tree 1 .
+.Xr tree 1 ,
+.Xr ncdu 1 .
 .Pp
 .Nm
-has a website:
+is based on ncdu by Yorhel:
 .Lk https://dev.yorhel.nl/ncdu
 .
 .Sh AUTHORS
-Written by
+indu is based on ncdu, written by
 .An Yorhel Aq Mt projects@yorhel.nl
 .
 .Sh BUGS
@@ -493,7 +499,7 @@ Some minor glitches may appear when displaying filenames that contain multibyte
 or multicolumn characters.
 .Pp
 All sizes are internally represented as a signed 64bit integer.
-If you have a directory larger than 8 EiB minus one byte, ncdu will clip its
+If you have a directory larger than 8 EiB minus one byte, indu will clip its
 size to 8 EiB minus one byte.
 When deleting or refreshing items in a directory with a clipped size, the
 resulting sizes will be incorrect.
@@ -501,13 +507,12 @@ Item counts are stored in a 32-bit integer without overflow detection.
 If you have a directory with more than 2 billion files, quite literally
 anything can happen.
 .Pp
-On macOS 10.15 and later, running ncdu on the root directory without
+On macOS 10.15 and later, running indu on the root directory without
 .Fl \-exclude\-firmlinks
 may cause directories to be scanned and counted multiple times.
 Firmlink cycles are not detected, so it may also cause
 .Nm
 to get stuck in an infinite loop and eventually run out of memory.
 .Pp
-Please report any other bugs you may find at the bug tracker, which can be
-found on the web site at
+For issues with the original ncdu functionality, see the bug tracker at:
 .Lk https://dev.yorhel.nl/ncdu
