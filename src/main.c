@@ -24,6 +24,7 @@
 */
 
 #include "global.h"
+#include "dir_cache.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -282,7 +283,11 @@ static int arg_option(int infile) {
   else if(OPT("--include-kernfs")) exclude_kernfs = 0;
   else if(OPT("--follow-firmlinks")) follow_firmlinks = 1;
   else if(OPT("--exclude-firmlinks")) follow_firmlinks = 0;
-  else if(OPT("--confirm-quit")) confirm_quit = 1;
+  else if(OPT("--cache") || OPT("-C")) {
+    arg = ARG;
+    if(!arg) return 1;
+    cache_file = xstrdup(arg);
+  } else if(OPT("--confirm-quit")) confirm_quit = 1;
   else if(OPT("--no-confirm-quit")) confirm_quit = 0;
   else if(OPT("--confirm-delete")) delete_confirm = 1;
   else if(OPT("--no-confirm-delete")) delete_confirm = 0;
@@ -306,6 +311,7 @@ static void arg_help(void) {
   "  -v, -V, --version          Print version\n"
   "  -f FILE                    Import scanned directory from FILE\n"
   "  -o FILE                    Export scanned directory to FILE in JSON format\n"
+  "  -C, --cache FILE           Use FILE as incremental scan cache\n"
   "  -e, --extended             Enable extended information\n"
   "  --ignore-config            Don't load config files\n"
   "\n"
@@ -454,8 +460,14 @@ static void argv_parse(int argc, char **argv) {
   if(import) {
     if(dir_import_init(import)) die("Can't open %s: %s\n", import, strerror(errno));
     if(strcmp(import, "-") == 0) ncurses_tty = 1;
-  } else
+  } else {
+    if(cache_file) {
+      dir_cache_init(cache_file);
+      if(dir_cache_load())
+        fprintf(stderr, "Warning: could not load cache file\n");
+    }
     dir_scan_init(dir ? dir : ".");
+  }
 
   /* Use the single-line scan feedback by default when exporting to file, no
    * feedback when exporting to stdout. */

@@ -423,6 +423,11 @@ struct dir *getroot(struct dir *d) {
 void addparentstats(struct dir *d, int64_t size, int64_t asize, uint64_t mtime, int items) {
   struct dir_ext *e;
   while(d) {
+    /* Stop propagation at cached directories - their sizes/items already
+     * include all descendants from the cache. This prevents double-counting
+     * when replaying cached subtrees. */
+    if (d->flags & FF_CACHED)
+      break;
     d->size = adds64(d->size, size);
     d->asize = adds64(d->asize, asize);
     d->items += items;

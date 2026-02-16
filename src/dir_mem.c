@@ -75,8 +75,12 @@ static void hlink_check(struct dir *d) {
   /* now update the sizes of the parent directories,
    * This works by only counting this file in the parent directories where this
    * file hasn't been counted yet, which can be determined from the hlnk list.
+   * Stop at cached directories - their sizes already include this item.
    * XXX: This may not be the most efficient algorithm to do this */
   for(i=1,par=d->parent; i&&par; par=par->parent) {
+    /* Stop at cached directories - sizes already include all descendants */
+    if(par->flags & FF_CACHED)
+      break;
     if(d->hlnk)
       for(t=d->hlnk; i&&t!=d; t=t->hlnk)
         for(pt=t->parent; i&&pt; pt=pt->parent)
@@ -143,10 +147,21 @@ static int item(struct dir *dir, const char *name, struct dir_ext *ext, unsigned
 
   /* Update stats of parents. Don't update the size/asize fields if this is a
    * possible hard link, because hlnk_check() will take care of it in that
-   * case. */
+   * case.
+   * For cached directories (FF_CACHED), add items+1 to parent because the
+   * cached size already includes all descendants, and we need to count the
+   * directory plus all its contents in one go. */
   if(item->flags & FF_HLNKC) {
     addparentstats(item->parent, 0, 0, 0, 1);
     hlink_check(item);
+  } else if(item->flags & FF_CACHED) {
+    /* Cached directory: size includes all descendants, items count too.
+     * Add items+1 (directory itself + all its contents) to parent. */
+    if(item->flags & FF_EXT) {
+      addparentstats(item->parent, item->size, item->asize, dir_ext_ptr(item)->mtime, item->items + 1);
+    } else {
+      addparentstats(item->parent, item->size, item->asize, 0, item->items + 1);
+    }
   } else if(item->flags & FF_EXT) {
     addparentstats(item->parent, item->size, item->asize, dir_ext_ptr(item)->mtime, 1);
   } else {

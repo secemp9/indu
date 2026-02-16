@@ -53,6 +53,7 @@
 #define FF_EXT    0x100 /* extended struct available */
 #define FF_KERNFS 0x200 /* excluded because it was a Linux pseudo filesystem */
 #define FF_FRMLNK 0x400 /* excluded because it was a firmlink */
+#define FF_CACHED 0x800
 
 /* Ext mode flags (struct dir_ext -> flags) */
 #define FFE_MTIME 0x01

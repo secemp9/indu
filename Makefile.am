@@ -6,6 +6,8 @@ ncdu_SOURCES=\
 	src/delete.c\
 	src/dirlist.c\
 	src/dir_common.c\
+	src/dir_cache.c\
+	src/dir_cache_lock.c\
 	src/dir_export.c\
 	src/dir_import.c\
 	src/dir_mem.c\
@@ -26,6 +28,8 @@ noinst_HEADERS=\
 	src/browser.h\
 	src/delete.h\
 	src/dir.h\
+	src/dir_cache.h\
+	src/dir_cache_lock.h\
 	src/dirlist.h\
 	src/exclude.h\
 	src/global.h\

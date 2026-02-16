@@ -1,8 +1,17 @@
+# Compiled files
+*.o
+*.lo
+*.la
+*.a
+*.so
+*.dylib
+ncdu
+
+# Autotools generated
 Makefile
 Makefile.in
 aclocal.m4
 autom4te.cache/
-compile
 config.h
 config.h.in
 config.log
@@ -11,12 +20,21 @@ configure
 depcomp
 install-sh
 missing
-.deps/
-.dirstamp
-*.o
 stamp-h1
-ncdu
-*~
+compile
+.deps/
+.libs/
+
+# Build directories
+build/
+
+# Editor/IDE
 *.swp
-static/*
-!static/build.sh
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

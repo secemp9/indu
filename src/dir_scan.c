@@ -24,6 +24,7 @@
 */
 
 #include "global.h"
+#include "dir_cache.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -59,6 +60,18 @@ static uint64_t curdev;   /* current device we're scanning on */
 static struct dir    *buf_dir;
 static struct dir_ext buf_ext[1];
 static unsigned int buf_nlink;
+
+/* Context for collecting children during walk */
+struct walk_context {
+  struct cache_child *children;
+  int nchildren;
+  int children_cap;
+};
+
+/* Forward declarations */
+static int dir_walk_ctx(char *dir, struct walk_context *ctx);
+static void walk_context_add_child(struct walk_context *ctx, const char *name);
+static void walk_context_free(struct walk_context *ctx);
 
 
 #if HAVE_LINUX_MAGIC_H && HAVE_SYS_STATFS_H && HAVE_STATFS
@@ -199,6 +212,10 @@ static int dir_walk(char *);
 static int dir_scan_recurse(const char *name) {
   int fail = 0;
   char *dir;
+  /* Save directory info before walk (buf_dir/buf_ext get overwritten by children) */
+  struct dir saved_dir;
+  struct dir_ext saved_ext;
+  struct walk_context ctx = {NULL, 0, 0};
 
   if(chdir(name)) {
     dir_setlasterr(dir_curpath);
@@ -228,11 +245,24 @@ static int dir_scan_recurse(const char *name) {
   if(fail)
     buf_dir->flags |= FF_ERR;
 
+  /* Save directory info before walking children */
+  memcpy(&saved_dir, buf_dir, offsetof(struct dir, name));
+  memcpy(&saved_ext, buf_ext, sizeof(struct dir_ext));
+
   if(dir_output.item(buf_dir, name, buf_ext, buf_nlink)) {
     dir_seterr("Output error: %s", strerror(errno));
     return 1;
   }
-  fail = dir_walk(dir);
+
+  /* Walk children, collecting info for cache if caching is enabled */
+  fail = dir_walk_ctx(dir, cache_file ? &ctx : NULL);
+
+  if(!fail && cache_file) {
+    dir_cache_store(dir_curpath, &saved_dir, saved_dir.flags & FF_EXT ? &saved_ext : NULL,
+                    ctx.children, ctx.nchildren);
+    walk_context_free(&ctx);
+  }
+
   if(dir_output.item(NULL, 0, NULL, 0)) {
     dir_seterr("Output error: %s", strerror(errno));
     return 1;
@@ -250,8 +280,9 @@ static int dir_scan_recurse(const char *name) {
 
 /* Scans and adds a single item. Recurses into dir_walk() again if this is a
  * directory. Assumes we're chdir'ed in the directory in which this item
- * resides. */
-static int dir_scan_item(const char *name) {
+ * resides. If parent_ctx is provided, the item will be added to it before
+ * recursion (to capture correct values for directories). */
+static int dir_scan_item_ctx(const char *name, struct walk_context *parent_ctx) {
   static struct stat st, stl;
   int fail = 0;
 
@@ -308,11 +339,37 @@ static int dir_scan_item(const char *name) {
       stat_to_dir(&st);
   }
 
+  /* Cache lookup for directories */
+  if((buf_dir->flags & FF_DIR) &&
+     !(buf_dir->flags & (FF_ERR|FF_EXL|FF_OTHFS|FF_KERNFS|FF_FRMLNK)) &&
+     cache_file != NULL) {
+    struct dir_ext *dext = buf_dir->flags & FF_EXT ? buf_ext : NULL;
+    uint64_t mtime = dext ? dext->mtime : 0;
+    struct cache_entry *cached = dir_cache_lookup(dir_curpath, mtime, buf_dir->dev, buf_dir->ino);
+    if(cached) {
+      buf_dir->flags |= FF_CACHED;
+      buf_dir->size = cached->size;
+      buf_dir->asize = cached->asize;
+      buf_dir->items = cached->items;  /* Set items from cache for correct propagation */
+      /* Add to parent context BEFORE output (values are correct now) */
+      if (parent_ctx && cache_file)
+        walk_context_add_child(parent_ctx, name);
+      dir_output.item(buf_dir, name, dext, buf_nlink);
+      dir_cache_replay(cached);
+      dir_output.item(NULL, NULL, NULL, 0);
+      return input_handle(1);
+    }
+  }
+
   if(cachedir_tags && (buf_dir->flags & FF_DIR) && !(buf_dir->flags & (FF_ERR|FF_EXL|FF_OTHFS|FF_KERNFS|FF_FRMLNK)))
     if(has_cachedir_tag(name)) {
       buf_dir->flags |= FF_EXL;
       buf_dir->size = buf_dir->asize = 0;
     }
+
+  /* Add to parent context BEFORE recursion (values are correct now) */
+  if (parent_ctx && cache_file)
+    walk_context_add_child(parent_ctx, name);
 
   /* Recurse into the dir or output the item */
   if(buf_dir->flags & FF_DIR && !(buf_dir->flags & (FF_ERR|FF_EXL|FF_OTHFS|FF_KERNFS|FF_FRMLNK)))
@@ -330,11 +387,59 @@ static int dir_scan_item(const char *name) {
   return fail || input_handle(1);
 }
 
+/* Legacy wrapper without context */
+static int dir_scan_item(const char *name) {
+  return dir_scan_item_ctx(name, NULL);
+}
+
+
+/* Add a child to the walk context using saved values */
+static void walk_context_add_child_from_saved(struct walk_context *ctx, const char *name,
+                                              struct dir *d, struct dir_ext *ext, unsigned int nlink) {
+  if (ctx->nchildren >= ctx->children_cap) {
+    ctx->children_cap = ctx->children_cap ? ctx->children_cap * 2 : 16;
+    ctx->children = xrealloc(ctx->children, ctx->children_cap * sizeof(struct cache_child));
+  }
+
+  struct cache_child *cc = &ctx->children[ctx->nchildren++];
+  cc->name = xstrdup(name);
+  cc->flags = d->flags;
+  cc->size = d->size;
+  cc->asize = d->asize;
+  cc->ino = d->ino;
+  cc->dev = d->dev;
+  cc->mtime = (ext && (ext->flags & FFE_MTIME)) ? ext->mtime : 0;
+  cc->uid = (ext && (ext->flags & FFE_UID)) ? ext->uid : 0;
+  cc->gid = (ext && (ext->flags & FFE_GID)) ? ext->gid : 0;
+  cc->mode = (ext && (ext->flags & FFE_MODE)) ? ext->mode : 0;
+  cc->nlink = nlink;
+  cc->children = NULL;
+  cc->nchildren = 0;
+}
+
+/* Add a child to the walk context using current buf_dir values */
+static void walk_context_add_child(struct walk_context *ctx, const char *name) {
+  walk_context_add_child_from_saved(ctx, name, buf_dir, buf_ext, buf_nlink);
+}
+
+/* Free walk context children names */
+static void walk_context_free(struct walk_context *ctx) {
+  int i;
+  for (i = 0; i < ctx->nchildren; i++) {
+    if (ctx->children[i].name)
+      free(ctx->children[i].name);
+  }
+  if (ctx->children)
+    free(ctx->children);
+  ctx->children = NULL;
+  ctx->nchildren = 0;
+  ctx->children_cap = 0;
+}
 
 /* Walks through the directory that we're currently chdir'ed to. *dir contains
  * the filenames as returned by dir_read(), and will be freed automatically by
- * this function. */
-static int dir_walk(char *dir) {
+ * this function. Populates ctx with children info if ctx is not NULL. */
+static int dir_walk_ctx(char *dir, struct walk_context *ctx) {
   int fail = 0;
   char *cur;
 
@@ -344,12 +449,18 @@ static int dir_walk(char *dir) {
     memset(buf_dir, 0, offsetof(struct dir, name));
     memset(buf_ext, 0, sizeof(struct dir_ext));
     buf_nlink = 0;
-    fail = dir_scan_item(cur);
+    /* Pass context to dir_scan_item_ctx - it will add children at the right moment */
+    fail = dir_scan_item_ctx(cur, ctx);
     dir_curpath_leave();
   }
 
   free(dir);
   return fail;
+}
+
+/* Legacy wrapper for backward compatibility */
+static int dir_walk(char *dir) {
+  return dir_walk_ctx(dir, NULL);
 }
 
 
@@ -402,6 +513,12 @@ static int process(void) {
 
   while(dir_fatalerr && !input_handle(0))
     ;
+
+  if(!dir_fatalerr && !fail && cache_file) {
+    dir_cache_save();
+    dir_cache_destroy();
+  }
+
   return dir_output.final(dir_fatalerr || fail);
 }
 
