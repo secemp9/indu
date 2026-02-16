@@ -1,4 +1,6 @@
-# indu - Incremental NCurses Disk Usage
+# indu
+
+**ncdu but faster**
 
 A fork of [ncdu](https://dev.yorhel.nl/ncdu) (NCurses Disk Usage) by Yoran Heling, with **incremental caching** for dramatically faster subsequent scans.
 
